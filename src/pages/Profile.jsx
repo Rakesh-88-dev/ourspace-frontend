@@ -8,7 +8,29 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
 
   const token = localStorage.getItem("token");
-  const BASE_URL = "https://ourspace-backend-szfy.onrender.com";
+  const BASE_URL = "http://localhost:5000"; // ✅ 
+  // change later for production
+
+  const [stats, setStats] = useState({
+  dreams: 0,
+  achieved: 0,
+  shared: 0,
+  memories: 0,
+});
+
+const fetchStats = async () => {
+  try {
+    const res = await axios.get(`${BASE_URL}/api/stats`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    setStats(res.data);
+  } catch (err) {
+    console.error("Error fetching stats:", err);
+  }
+};
 
   // 🔥 FETCH USER
   const fetchUser = async () => {
@@ -25,43 +47,44 @@ export default function Profile() {
   };
 
   useEffect(() => {
-    fetchUser();
-  }, []);
+  fetchUser();
+  fetchStats();
+}, []);
 
-  // 🔥 AUTO UPLOAD AVATAR (BEST UX)
- const handleAvatarChange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  // 🔥 AVATAR UPLOAD
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  setPreview(URL.createObjectURL(file));
-  setLoading(true);
+    setPreview(URL.createObjectURL(file));
+    setLoading(true);
 
-  try {
-    const formData = new FormData();
-    formData.append("avatar", file);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
 
-    const res = await axios.put(
-      `${BASE_URL}/api/users/me`,
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+      const res = await axios.put(
+        `${BASE_URL}/api/users/me`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-    console.log("UPDATED USER:", res.data);
+      console.log("UPDATED USER:", res.data);
 
-    setUser(res.data);
-  } catch (err) {
-    console.error("Avatar upload failed:", err);
-  } finally {
-    setLoading(false);
-    setPreview(null);
-  }
-};
+      setUser(res.data);
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+    } finally {
+      setLoading(false);
+      setPreview(null);
+    }
+  };
 
-  // 🔥 UPDATE NAME + BIO
+  // 🔥 UPDATE PROFILE
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -93,28 +116,37 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen text-white p-6">
-      <h1 className="text-3xl font-bold mb-6">👤 Your Profile</h1>
+    <div className="min-h-screen text-white p-6 bg-gradient-to-br from-black via-gray-900 to-black">
+      <h1 className="text-3xl font-bold mb-8 text-center">
+        👤 Your Profile
+      </h1>
 
-      <div className="max-w-4xl mx-auto bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl">
+      <div className="max-w-4xl mx-auto bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
 
-        <div className="flex flex-col md:flex-row items-center gap-6">
+        {/* TOP */}
+        <div className="flex flex-col md:flex-row items-center gap-8">
 
-          {/* 🔥 AVATAR */}
-          <label htmlFor="avatarInput" className="cursor-pointer relative">
+          {/* AVATAR */}
+          <label htmlFor="avatarInput" className="relative group cursor-pointer">
             <img
               src={
                 preview
                   ? preview
                   : user.avatar
-                  ? user.avatar // ✅ Cloudinary direct URL
+                  ? `${user.avatar}?t=${Date.now()}`
                   : "/favicon.png"
               }
-              className="w-32 h-32 rounded-full object-cover border-2 border-pink-500 hover:opacity-80 transition"
+              className="w-36 h-36 rounded-full object-cover border-4 border-pink-500 shadow-lg transition group-hover:scale-105"
             />
 
+            {/* Hover overlay */}
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-full transition">
+              <span className="text-sm">Change</span>
+            </div>
+
+            {/* Loading */}
             {loading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/70 rounded-full">
                 ⏳
               </div>
             )}
@@ -136,7 +168,7 @@ export default function Profile() {
                   onChange={(e) =>
                     setUser({ ...user, name: e.target.value })
                   }
-                  className="w-full p-2 bg-black/40 rounded"
+                  className="w-full p-3 bg-black/40 rounded-lg border border-white/10"
                 />
 
                 <input
@@ -144,32 +176,38 @@ export default function Profile() {
                   onChange={(e) =>
                     setUser({ ...user, bio: e.target.value })
                   }
-                  className="w-full p-2 bg-black/40 rounded mt-2"
+                  className="w-full p-3 bg-black/40 rounded-lg border border-white/10 mt-3"
                 />
               </>
             ) : (
               <>
-                <h2 className="text-2xl font-semibold">{user.name}</h2>
-                <p className="text-gray-400">{user.email}</p>
-                <p className="mt-2 text-sm text-gray-300">
+                <h2 className="text-3xl font-semibold">
+                  {user.name}
+                </h2>
+
+                <p className="text-gray-400 mt-1">
+                  {user.email}
+                </p>
+
+                <p className="mt-3 text-gray-300 italic">
                   {user.bio || "No bio yet..."}
                 </p>
               </>
             )}
 
-            <div className="mt-3 flex gap-2">
+            <div className="mt-5 flex gap-3 justify-center md:justify-start">
               <button
                 onClick={() => setEditing(!editing)}
-                className="px-4 py-1 bg-pink-500 rounded"
+                className="px-5 py-2 bg-pink-500 hover:bg-pink-600 rounded-lg"
               >
-                {editing ? "Cancel" : "Edit Profile"}
+                {editing ? "Cancel" : "Edit"}
               </button>
 
               {editing && (
                 <button
                   onClick={handleSave}
                   disabled={loading}
-                  className="px-4 py-1 bg-green-500 rounded disabled:opacity-50"
+                  className="px-5 py-2 bg-green-500 hover:bg-green-600 rounded-lg disabled:opacity-50"
                 >
                   {loading ? "Saving..." : "Save"}
                 </button>
@@ -178,19 +216,28 @@ export default function Profile() {
           </div>
         </div>
 
+        {/* DIVIDER */}
+        <div className="my-8 border-t border-white/10"></div>
+
         {/* STATS */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 text-center">
-          <Stat title="Dreams" value="12" />
-          <Stat title="Achieved" value="5" />
-          <Stat title="Shared" value="3" />
-          <Stat title="Memories" value="8" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <Stat title="Dreams" value={stats.dreams} />
+<Stat title="Achieved" value={stats.achieved} />
+<Stat title="Shared" value={stats.shared} />
+<Stat title="Memories" value={stats.memories} />
         </div>
 
         {/* PARTNER */}
-        <div className="mt-8 bg-white/5 p-4 rounded-xl text-center">
-          <h3 className="text-lg font-semibold mb-2">💑 Your Partner</h3>
-          <p className="text-gray-400">Not connected yet</p>
-          <button className="mt-3 px-4 py-1 bg-purple-500 rounded">
+        <div className="mt-10 bg-white/5 p-6 rounded-2xl text-center border border-white/10">
+          <h3 className="text-xl font-semibold mb-2">
+            💑 Your Partner
+          </h3>
+
+          <p className="text-gray-400">
+            Not connected yet
+          </p>
+
+          <button className="mt-4 px-5 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg">
             Invite Partner
           </button>
         </div>
@@ -199,10 +246,11 @@ export default function Profile() {
   );
 }
 
+// ✅ FIXED STAT COMPONENT
 function Stat({ title, value }) {
   return (
-    <div className="bg-white/5 p-3 rounded-lg">
-      <p className="text-xl font-bold">{value}</p>
+    <div className="bg-white/5 p-4 rounded-xl border border-white/10 hover:scale-105 transition">
+      <p className="text-2xl font-bold">{value}</p>
       <p className="text-sm text-gray-400">{title}</p>
     </div>
   );
