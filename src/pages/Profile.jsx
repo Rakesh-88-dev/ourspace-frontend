@@ -4,21 +4,20 @@ import axios from "axios";
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [editing, setEditing] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const token = localStorage.getItem("token");
+  const BASE_URL = "https://ourspace-backend-szfy.onrender.com";
 
-  // 🔥 FETCH USER DATA
+  // 🔥 FETCH USER
   const fetchUser = async () => {
     try {
-      const res = await axios.get(
-        "https://ourspace-backend-szfy.onrender.com/api/users/me",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
+      const res = await axios.get(`${BASE_URL}/api/users/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setUser(res.data);
     } catch (err) {
       console.error("Error fetching user:", err);
@@ -29,11 +28,46 @@ export default function Profile() {
     fetchUser();
   }, []);
 
-  // 🔥 UPDATE PROFILE
+  // 🔥 AUTO UPLOAD AVATAR (BEST UX)
+ const handleAvatarChange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  setPreview(URL.createObjectURL(file));
+  setLoading(true);
+
+  try {
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    const res = await axios.put(
+      `${BASE_URL}/api/users/me`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    console.log("UPDATED USER:", res.data);
+
+    setUser(res.data);
+  } catch (err) {
+    console.error("Avatar upload failed:", err);
+  } finally {
+    setLoading(false);
+    setPreview(null);
+  }
+};
+
+  // 🔥 UPDATE NAME + BIO
   const handleSave = async () => {
     try {
+      setLoading(true);
+
       const res = await axios.put(
-        "https://ourspace-backend-szfy.onrender.com/api/users/me",
+        `${BASE_URL}/api/users/me`,
         {
           name: user.name,
           bio: user.bio,
@@ -49,10 +83,11 @@ export default function Profile() {
       setEditing(false);
     } catch (err) {
       console.error("Update failed:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ⏳ Loading state
   if (!user) {
     return <div className="text-white p-6">Loading profile...</div>;
   }
@@ -63,13 +98,33 @@ export default function Profile() {
 
       <div className="max-w-4xl mx-auto bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl">
 
-        {/* TOP */}
         <div className="flex flex-col md:flex-row items-center gap-6">
 
-          {/* AVATAR */}
-          <img
-            src={user.avatar || "/favicon.png"}
-            className="w-32 h-32 rounded-full object-cover border-2 border-pink-500"
+          {/* 🔥 AVATAR */}
+          <label htmlFor="avatarInput" className="cursor-pointer relative">
+            <img
+              src={
+                preview
+                  ? preview
+                  : user.avatar
+                  ? user.avatar // ✅ Cloudinary direct URL
+                  : "/favicon.png"
+              }
+              className="w-32 h-32 rounded-full object-cover border-2 border-pink-500 hover:opacity-80 transition"
+            />
+
+            {loading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                ⏳
+              </div>
+            )}
+          </label>
+
+          <input
+            type="file"
+            id="avatarInput"
+            hidden
+            onChange={handleAvatarChange}
           />
 
           {/* INFO */}
@@ -97,7 +152,7 @@ export default function Profile() {
                 <h2 className="text-2xl font-semibold">{user.name}</h2>
                 <p className="text-gray-400">{user.email}</p>
                 <p className="mt-2 text-sm text-gray-300">
-                  {user.bio}
+                  {user.bio || "No bio yet..."}
                 </p>
               </>
             )}
@@ -113,9 +168,10 @@ export default function Profile() {
               {editing && (
                 <button
                   onClick={handleSave}
-                  className="px-4 py-1 bg-green-500 rounded"
+                  disabled={loading}
+                  className="px-4 py-1 bg-green-500 rounded disabled:opacity-50"
                 >
-                  Save
+                  {loading ? "Saving..." : "Save"}
                 </button>
               )}
             </div>
