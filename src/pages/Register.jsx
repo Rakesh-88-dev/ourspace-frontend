@@ -28,7 +28,7 @@ export default function Register() {
 
   const strength = getStrength();
   localStorage.setItem("name", name);
-navigate("/welcome");
+
 
   // 🧑‍🎨 HANDLE AVATAR
   const handleAvatar = (e) => {
