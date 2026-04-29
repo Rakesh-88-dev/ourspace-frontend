@@ -7,7 +7,7 @@ import Planets from "../components/Planets";
 const BASE_URL = "https://ourspace-backend-szfy.onrender.com";
 
 export default function Wishlist() {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState([]); 
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
 
@@ -29,16 +29,14 @@ export default function Wishlist() {
   const filters = ["All dreams", "Still dreaming", "Made real", "Shared 💑"];
 
   // 🔥 FETCH
-  const fetchItems = async () => {
-    try {
-      const res = await axios.get(`${BASE_URL}/api/wishlist`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setItems(res.data);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+ const fetchItems = async () => {
+  try {
+    const res = await axios.get(`${BASE_URL}/api/wishlist/public`);
+    setItems(res.data);
+  } catch (err) {
+    console.log(err);
+  }
+};
 
   useEffect(() => {
     fetchItems();
