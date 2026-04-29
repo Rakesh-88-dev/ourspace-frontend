@@ -8,7 +8,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
 
   const token = localStorage.getItem("token");
-  const BASE_URL = "http://localhost:5000"; // ✅ 
+  const BASE_URL = "https://ourspace-backend-szfy.onrender.com"; // ✅ 
   // change later for production
 
   const [stats, setStats] = useState({
